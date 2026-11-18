@@ -649,7 +649,7 @@ const AMYPortal = (() => {
     }
     await reveal(items);
     persist(r);
-    returnToChat(r);
+    if (window.AMYReading) window.AMYReading.show(r, () => returnToChat(r)); else returnToChat(r);
   }
 
   async function triadText(r, moonTxt, nakTxt) {
@@ -741,7 +741,7 @@ const AMYPortal = (() => {
     bits.push(`born on a ${r.weekday}`, /moon$/i.test(r.moonPhase.name) ? r.moonPhase.name : `${r.moonPhase.name} Moon`);
     if (!S.lastNotice || Date.now() - S.lastNotice > 3 * 3600 * 1000) { S.messages.push({ id: uid(), role: "notice", kind: "ai" }); S.lastNotice = Date.now(); }
     S.messages.push({ id: uid(), role: "amy", parts: [], text: `**Your birth sky:** ${bits.join(" · ")}.` });
-    S.afterDiscovery = `the birth sky (${bits.join("; ")}).`;
+    S.afterDiscovery = `the birth sky (${bits.join("; ")}).` + (S.freeReading ? ` They have just read their free reading, which said: "${S.freeReading.slice(0, 700)}". Ask what part of it felt most true, and when it fits, invite them to the full soul reading.` : "");
     save();
     el("portal").hidden = true; el("app").hidden = false; document.body.classList.remove("in-portal");
     showConversation(); renderThread();
