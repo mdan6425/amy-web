@@ -129,11 +129,12 @@
     const res = await post({ mode: "json", tier: "quick", prompt: String(prompt) }, opts && opts.signal);
     const { text } = await res.json();
     const t = String(text || "").trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
-    try { return JSON.parse(t); } catch (e) {
-      const a = t.indexOf("{"), b = t.lastIndexOf("}");
-      if (a >= 0 && b > a) return JSON.parse(t.slice(a, b + 1));
-      throw err("bad_json");
-    }
+    // Models sometimes put raw line breaks inside JSON strings; escape them before parsing.
+    const repair = (x) => { let o = "", inS = false, bs = false; for (const ch of x) { if (inS) { if (bs) { o += ch; bs = false; } else if (ch === "\\") { o += ch; bs = true; } else if (ch === '"') { inS = false; o += ch; } else if (ch === "\n") o += "\\n"; else if (ch === "\r") { /* drop */ } else if (ch === "\t") o += "\\t"; else o += ch; } else { if (ch === '"') inS = true; o += ch; } } return o; };
+    const a = t.indexOf("{"), b = t.lastIndexOf("}");
+    const body = a >= 0 && b > a ? t.slice(a, b + 1) : t;
+    for (const c of [t, body, repair(body)]) { try { return JSON.parse(c); } catch (e) { /* try the next form */ } }
+    throw err("bad_json");
   };
 
   /* ---------- Visitor id and storage ---------- */
