@@ -87,15 +87,14 @@
     };
   }
 
-  async function writeReading(f) {
-    const prompt = `You are AMY, a warm, feminine spiritual guide on a website. Write a free first reading for a visitor from these facts only. Never invent other placements.
-Facts: Western Sun ${f.sun}; Vedic Sun ${f.vedicSun}; ${f.moon ? `Moon ${f.moon} in the nakshatra ${f.nakshatra}; ` : "birth time unknown, so no Moon sign or rising; "}${f.rising ? `${f.rising} rising; ` : ""}born on a ${f.weekday} under a ${f.phase}; ${f.lifePath ? `numerology Life Path ${f.lifePath} (${f.lpTitle}: gift ${f.lpGift}; shadow ${f.lpShadow})` : ""}.${f.name ? ` Their name is ${f.name}.` : ""}
-Write three short paragraphs, about 120 words in total, speaking to them as "you". Attribute traditions ("In astrology…", "Vedic astrology says…", "Numerology calls…"). Weave the pieces into one picture of who they are: their gift, what they may struggle with, and what their soul seems to be learning. Make it feel personal and true, tender, a little mysterious. No predictions, no em dashes, no lists. End with one sentence saying there is much more in their chart that a full reading can open.
-Return JSON: {"title": "an evocative title of at most six words", "reading": "the three paragraphs separated by blank lines"}`;
+  async function writeReading(f, onText) {
+    const facts = `Western Sun ${f.sun}; Vedic Sun ${f.vedicSun}; ${f.moon ? `Moon ${f.moon} in the nakshatra ${f.nakshatra}; ` : "birth time unknown, so no Moon sign or rising; "}${f.rising ? `${f.rising} rising; ` : ""}born on a ${f.weekday} under a ${f.phase}${f.lifePath ? `; numerology Life Path ${f.lifePath}, ${f.lpTitle} (gift: ${f.lpGift}; shadow: ${f.lpShadow})` : ""}${f.name ? `; their name is ${f.name}` : ""}`;
+    const msg = `[The visitor has just seen their birth sky. Write their free first reading now, from these facts only, never inventing other placements: ${facts}. Three short paragraphs, about 120 words, speaking to them as you and attributing each tradition. Weave it into one picture of who they are: their gift, what they may struggle with, what their soul seems to be learning. Make it feel personal, tender and a little mysterious. End with one sentence saying there is much more in their chart that a full reading can open. No question at the end and no tools.]`;
     try {
       const sample = await window.claude.use("sample");
-      const out = await sample.json(prompt, { modelTier: "quick" });
-      if (out && typeof out.reading === "string" && out.reading.length > 60) return { title: String(out.title || "Your reading").slice(0, 80), reading: out.reading };
+      const out = await sample([{ role: "user", content: msg }], { modelTier: "default", onText: (u) => onText && onText(u && u.text) });
+      const text = out && String(out.text || "").trim();
+      if (text && text.length > 80) return { title: "What your sky says about you", reading: text };
     } catch (e) { /* use the written fallback */ }
     return fallback(f);
   }
@@ -163,7 +162,8 @@ Return JSON: {"title": "an evocative title of at most six words", "reading": "th
       };
     });
 
-    const rd = await writeReading(f);
+    const paint = (txt) => { if (!closed && txt) root.querySelector(".rd-text").innerHTML = String(txt).split(/\n\s*\n/).map((p) => `<p>${esc(p.trim())}</p>`).join(""); };
+    const rd = await writeReading(f, (t) => { if (t) { root.querySelector(".rd-h").textContent = "What your sky says about you"; paint(t); } });
     if (closed) return;
     root.querySelector(".rd-h").textContent = rd.title;
     root.querySelector(".rd-text").innerHTML = rd.reading.split(/\n\s*\n/).map((p) => `<p>${esc(p.trim())}</p>`).join("");
