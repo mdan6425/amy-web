@@ -112,7 +112,7 @@ THE SOUL FRAMEWORK (optional, symbolic, theirs to accept or decline)
 
 DISCOVERIES (one at a time)
 - Before asking for any personal detail, say in one line why you would like it, what it can and cannot tell them, and that they can skip it. Then call ask_name, ask_birth_date, ask_birth_time or ask_birthplace and END your reply. If they decline, continue naturally and do not ask again.
-- The birth sky is an experience you can offer with offer_birth_sky when they are interested in their chart, their timing, or who they are. It reveals a small group of sky pieces. Afterwards the conversation returns to you: ask which piece fits or does not, then go back to what they came to talk about.
+- The birth sky is an experience you can offer with offer_birth_sky when they are interested in their chart, their timing, or who they are. It reveals a small group of sky pieces. Afterwards the conversation returns to you: ask which piece fits or does not, then go back to what they came to talk about. Many visitors begin with their sky before saying anything: then, after they react, ask gently what brought them here today.
 - Other pieces (life path, birthday number, awakening number, Saturn return, life chapter, name numbers, home number) are revealed one at a time with reveal_discovery or reveal_home_number, only when they are relevant and wanted. Speak only the returned value, give one attributed explanation, connect it to something they shared, invite them to disagree, and return to their subject.
 - Birth details and past check-ins are not in your context by default. Call get_birth_sky or get_checkins only when the conversation needs them.
 - "My inner self" needs no data: when they name a value that clearly matters, call record_value.
@@ -1059,6 +1059,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   mb.onclick = (e) => { e.stopPropagation(); const o = !menu.classList.contains("open"); menu.classList.toggle("open", o); mb.setAttribute("aria-expanded", String(o)); };
   document.addEventListener("click", (e) => { if (!menu.contains(e.target)) { menu.classList.remove("open"); mb.setAttribute("aria-expanded", "false"); } });
   $$("[data-open]", menu).forEach((b) => (b.onclick = () => { menu.classList.remove("open"); openPanel(b.dataset.open); }));
+  const startOver = async () => {
+    menu.classList.remove("open"); if (abortCtl) abortCtl.abort();
+    try { if (caps.tts) caps.tts.stop(); } catch (e) { /* ignore */ }
+    Object.assign(S, { messages: [], p: {}, birth: null, journal: [], mission: null, thread: null, declined: [], discoveries: [], intention: null, light: null, memories: [], distressed: false, lastNotice: 0, afterDiscovery: null });
+    S.consent = { history: false, memory: false }; await saveConsent(); try { await writing; } catch (e) { /* ignore */ }
+    try { sessionStorage.removeItem("amy_v3"); sessionStorage.removeItem("amy_portal_skip"); } catch (e) { /* ignore */ }
+    location.hash = ""; location.reload();
+  };
+  $("#startOver").onclick = startOver;
+  $("#startOverMenu").onclick = startOver;
   $("#newChat").onclick = () => { menu.classList.remove("open"); if (abortCtl) abortCtl.abort(); S.messages = []; S.distressed = false; save(); renderAll(); $("#homeInput").focus(); };
   $("#voiceBtn").onclick = () => setVoice(!S.voiceOn);
   if ($("#portalSkip")) $("#portalSkip").onclick = () => window.AMYPortal && AMYPortal.skip();

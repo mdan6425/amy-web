@@ -738,7 +738,7 @@ const AMYPortal = (() => {
     const bits = [`Western Sun ${r.sun.tropical}`, `Vedic Sun ${r.sun.sidereal} (${r.sun.siderealWestern})`];
     if (r.timeKnown) bits.push(`Moon ${r.moon.rashi}, ${r.moon.nakshatra}`);
     if (r.rising) bits.push(`${r.rising.sign} rising`);
-    bits.push(`born on a ${r.weekday}`, `${r.moonPhase.name} Moon`);
+    bits.push(`born on a ${r.weekday}`, /moon$/i.test(r.moonPhase.name) ? r.moonPhase.name : `${r.moonPhase.name} Moon`);
     if (!S.lastNotice || Date.now() - S.lastNotice > 3 * 3600 * 1000) { S.messages.push({ id: uid(), role: "notice", kind: "ai" }); S.lastNotice = Date.now(); }
     S.messages.push({ id: uid(), role: "amy", parts: [], text: `**Your birth sky:** ${bits.join(" · ")}.` });
     S.afterDiscovery = `the birth sky (${bits.join("; ")}).`;
