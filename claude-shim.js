@@ -23,7 +23,10 @@
       msgs = msgs.slice(1);
       if (msgs[0] && msgs[0].role === "assistant" && msgs[0].content === "Understood.") msgs = msgs.slice(1);
     }
-    while (msgs[0] && msgs[0].role !== "user") msgs.shift();
+    // The API needs the conversation to start and end with the visitor. After the birth sky
+    // (or any moment AMY speaks first) add a quiet stage note instead of dropping her words.
+    if (!msgs.length || msgs[0].role !== "user") msgs.unshift({ role: "user", content: "[The visitor has opened AMY.]" });
+    if (msgs[msgs.length - 1].role !== "user") msgs.push({ role: "user", content: "[The visitor is with AMY now and waiting for her next words.]" });
     return { context, msgs };
   }
 
@@ -40,6 +43,8 @@
       try { code = (await res.json()).error || code; } catch (e) { /* ignore */ }
       if (code === "not_configured") throw err(code, "AMY is almost ready. Her connection is still being set up, so she can't reply yet. The Library, meditations, today's sky and Light Work all work now from the menu.");
       if (code === "rate_limited") throw err("rate_limited");
+      if (code === "key_rejected") throw err(code, "AMY can't reach her thinking right now: the site's Anthropic key was not accepted. (Site owner: check ANTHROPIC_API_KEY in Vercel, then redeploy.)");
+      if (code === "no_credit") throw err(code, "AMY is resting right now. (Site owner: the Anthropic account needs credit or a higher spending limit.)");
       throw err(code);
     }
     return res;

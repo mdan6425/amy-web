@@ -353,7 +353,8 @@ const AMYPortal = (() => {
 
   function shouldShow() {
     try { if (sessionStorage.getItem("amy_portal_skip")) return false; } catch (e) { /* ignore */ }
-    return false; // AMY answers first; the birth sky is offered in conversation (offer_birth_sky) or from the Soul Map.
+    // A first visit opens under the stars: the sky, the signs, who they were. Anyone can step straight into conversation instead.
+    return !S.p.birthDate && !(S.messages || []).some((m) => m.role === "user");
   }
   async function ensureSky() {
     if (sky) return sky;
@@ -447,7 +448,7 @@ const AMYPortal = (() => {
     P.question = null; P.facts = [];
     renderPuzzle();
     P.added = [];
-    say("Every sky is unique to its moment and place. Let me show you the one you were born under. You can stop at any time and go back to our conversation.", { silent: true });
+    say("Every soul arrives under a sky that will never look exactly that way again. Let me show you yours, and what the old traditions say it means about who you are.", { silent: true });
     if (S.p.birthDate) { const d = S.p.birthDate; P.date = d; setTimeout(() => onDate(d), 0); return; }
     askDate();
   }

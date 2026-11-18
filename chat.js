@@ -58,7 +58,34 @@ function cleanTools(list) {
   }));
 }
 
+async function check() {
+  // Owner check, visit /api/chat?check=1. Reveals only whether the key is set, what kind it looks like,
+  // and how Anthropic answers a one-word test. Never the key itself.
+  const key = process.env.ANTHROPIC_API_KEY || "";
+  const out = { configured: !!key, keyType: key.startsWith("sk-ant-api") ? "api key" : key ? "not an API key (should start with sk-ant-api)" : "missing", model: MODELS.default };
+  if (!key) return json(200, out);
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({ model: MODELS.default, max_tokens: 5, messages: [{ role: "user", content: "Say hi." }] }),
+  });
+  out.anthropicStatus = r.status;
+  if (!r.ok) { try { const e = await r.json(); out.anthropicError = e.error && e.error.type; out.anthropicMessage = String((e.error && e.error.message) || "").slice(0, 200); } catch { /* ignore */ } }
+  return json(200, out);
+}
+
+function upstreamCode(status, detail) {
+  if (status === 429 || status === 529) return "rate_limited";
+  if (status === 401 || status === 403) return "key_rejected";
+  if (/credit balance|billing|spend limit|usage limit/i.test(detail)) return "no_credit";
+  return "upstream";
+}
+
 export default async function handler(req) {
+  if (req.method === "GET" && new URL(req.url).searchParams.get("check")) {
+    if (limited("check:" + ((req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "anon"))) return json(429, { error: "rate_limited" });
+    return check();
+  }
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
   if (!sameOrigin(req)) return json(403, { error: "forbidden" });
   const key = process.env.ANTHROPIC_API_KEY;
@@ -106,7 +133,8 @@ export default async function handler(req) {
   if (!upstream.ok) {
     const detail = await upstream.text().catch(() => "");
     console.error("[amy] anthropic", upstream.status, detail.slice(0, 400));
-    return json(upstream.status === 429 || upstream.status === 529 ? 429 : 502, { error: upstream.status === 429 || upstream.status === 529 ? "rate_limited" : "upstream" });
+    const code = upstreamCode(upstream.status, detail);
+    return json(code === "rate_limited" ? 429 : 502, { error: code, status: upstream.status });
   }
 
   if (body.mode === "json") {

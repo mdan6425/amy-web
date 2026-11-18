@@ -271,6 +271,7 @@ function promptMessages() {
   }
   const trimmed = hist.slice(-24);
   if (trimmed[0] && trimmed[0].role === "assistant") trimmed.shift();
+  if (!trimmed.length || trimmed[trimmed.length - 1].role !== "user") trimmed.push({ role: "user", content: "[The visitor is with AMY now, having just seen what she showed them, and is waiting for her next words.]" });
   return [head, { role: "assistant", content: "Understood." }, ...trimmed];
 }
 /* ---------------- Context builder ---------------- */
@@ -499,7 +500,7 @@ async function reply() {
     const code = e && e.code;
     current.pending = false;
     if (e && e.text) current.text = e.text;
-    current.error = code === "not_configured" || code === "network" ? "" : code === "rate_limited" ? "AMY needs a moment. Try again shortly." : code === "not_granted" ? "AMY needs a moment. Try again shortly." : abortCtl.signal.aborted ? "" : "AMY couldn't finish replying. Your message is still here.";
+    current.error = code === "not_configured" || code === "network" || code === "key_rejected" || code === "no_credit" ? "" : code === "rate_limited" ? "AMY needs a moment. Try again shortly." : code === "not_granted" ? "AMY needs a moment. Try again shortly." : abortCtl.signal.aborted ? "" : "AMY couldn't finish replying. Your message is still here.";
     renderMessage(current);
   } finally {
     S.busy = false; setBusy(false); current = null; save();
