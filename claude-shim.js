@@ -111,12 +111,15 @@
       const uses = content.filter((b) => b.type === "tool_use");
       if (stop !== "tool_use" || !uses.length) break;
       const results = [];
+      let waitForThem = false;
       for (const u of uses) {
         let out;
         try { out = byName[u.name] ? await byName[u.name].execute(u.input || {}) : { error: "unknown tool" }; }
         catch (e) { out = { error: String((e && e.message) || e) }; }
+        if (out && typeof out.instruction === "string" && /^End your reply/.test(out.instruction)) waitForThem = true;
         results.push({ type: "tool_result", tool_use_id: u.id, content: JSON.stringify(out === undefined ? null : out) });
       }
+      if (waitForThem) break; // choices or a question are on screen: AMY waits for their answer
       msgs.push({ role: "user", content: results });
       sep = true;
     }
