@@ -58,7 +58,23 @@
   #reading .rd-book { margin-top: 12px; display: grid; gap: 10px; }
   #reading .rd-book input, #reading .rd-book textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(214,168,92,.35); background: rgba(16,8,13,.7); color: inherit; font: inherit; }
   #reading .rd-book .ok { color: #cfe8c8; } #reading .rd-book .err { color: #f2b8b0; font-size: 14px; }
-  @media (max-width: 760px) { #reading .rd-tiles { grid-template-columns: repeat(2, 1fr); } #reading .rd-cards { grid-template-columns: 1fr; } #reading .rd-amy { padding: 16px; flex-direction: column; gap: 10px; } #reading .rd-amy img { width: 44px; height: 44px; } #reading .rd-mark span { display: none; } }
+  #reading .rd-traits { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 22px; }
+  #reading .rd-trait { border: 1px solid var(--gold, #d6a85c); color: #f6e7c8; border-radius: 99px; padding: 6px 14px; font-size: 14px; background: rgba(214,168,92,.08); }
+  #reading .rd-sec { margin: 34px 0 0; }
+  #reading .rd-sec h3 { font: 400 26px/1.2 var(--display, serif); margin: 8px 0 6px; }
+  #reading .rd-sec > p { color: var(--mist, #cbb9a6); margin: 0 0 16px; }
+  #reading .rd-ints { display: flex; flex-wrap: wrap; gap: 10px; }
+  #reading .rd-int { border: 1px solid rgba(214,168,92,.55); background: rgba(30,14,22,.7); color: #f3e6d0; border-radius: 99px; padding: 11px 18px; font: 400 16px/1 var(--display, serif); cursor: pointer; }
+  #reading .rd-int:hover, #reading .rd-int.on { background: var(--gold, #d6a85c); color: #1b0d14; }
+  #reading .rd-own { display: flex; gap: 8px; margin-top: 12px; max-width: 560px; }
+  #reading .rd-own input { flex: 1; padding: 11px 14px; border-radius: 99px; border: 1px solid rgba(214,168,92,.35); background: rgba(16,8,13,.7); color: inherit; font: inherit; }
+  #reading .rd-own .rd-btn { width: auto; padding: 11px 18px; }
+  #reading .rd-answer { margin-top: 18px; }
+  #reading .rd-next { display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px; align-items: stretch; margin-top: 18px; }
+  #reading .rd-more { background: none; border: 0; color: var(--mist, #cbb9a6); text-decoration: underline; cursor: pointer; font: inherit; margin-top: 14px; }
+  #reading .rd-all[hidden] { display: none; }
+  #reading .rd-all { margin-top: 16px; }
+  @media (max-width: 760px) { #reading .rd-tiles { grid-template-columns: repeat(2, 1fr); } #reading .rd-cards, #reading .rd-next { grid-template-columns: 1fr; } #reading .rd-amy { padding: 16px; flex-direction: column; gap: 10px; } #reading .rd-amy img { width: 44px; height: 44px; } #reading .rd-mark span { display: none; } }
   `;
 
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -75,7 +91,49 @@
       rising: r.rising ? r.rising.sign : null,
       weekday: r.weekday, phase: /moon$/i.test(r.moonPhase.name) ? r.moonPhase.name : r.moonPhase.name + " Moon",
       lifePath: lp != null ? label(lp) : null, lpTitle: m ? m.title : "", lpGift: m ? m.gift : "", lpShadow: m ? m.shadow : "",
+      westernMoon: r.moon.tropical || null, phaseName: r.moonPhase.name, illum: Math.round(r.moonPhase.illumination * 100),
+      birthday: r.numbers && r.numbers.birthday != null ? label(r.numbers.birthday) : null, awakening: r.numbers && r.numbers.awakeningAges && r.numbers.awakeningAges[0],
+      planets: (r.planets || []).filter((p) => !["Sun", "Moon"].includes(p.planet)).map((p) => `${p.planet} in ${p.sign}${house(r, p.sign) ? ` (${ord(house(r, p.sign))} house)` : ""}`).join(", "),
+      sunHouse: house(r, r.sun.tropical), retro: (r.retrogrades || []).join(", "), hour: r.planetaryHour ? r.planetaryHour.ruler : null, dayRuler: r.weekdayRuler,
     };
+  }
+
+  const SIGNS = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"];
+  const house = (r, sign) => (!r.rising ? null : ((SIGNS.indexOf(sign) - SIGNS.indexOf(r.rising.sign) + 12) % 12) + 1);
+  const ord = (n) => n + (n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th");
+  const factLine = (f) => [
+    `Western Sun ${f.sun}${f.sunHouse ? ` in the ${ord(f.sunHouse)} house` : ""}`, `Vedic Sun ${f.vedicSun}`,
+    f.westernMoon ? `Western Moon ${f.westernMoon}` : null, f.moon ? `Vedic Moon ${f.moon} in the nakshatra ${f.nakshatra}` : null,
+    `born under a ${f.phaseName} (${f.illum}% lit)`, f.rising ? `${f.rising} rising` : "birth time unknown, so no rising sign",
+    f.planets ? `planets: ${f.planets}` : null, f.retro ? `retrograde: ${f.retro}` : null,
+    `born on a ${f.weekday}, the ${f.dayRuler}'s day${f.hour ? `, in the hour of ${f.hour}` : ""}`,
+    f.lifePath ? `numerology Life Path ${f.lifePath}, ${f.lpTitle} (gift: ${f.lpGift}; shadow: ${f.lpShadow})` : null,
+    f.birthday ? `birthday number ${f.birthday}` : null, f.awakening ? `awakening age ${f.awakening}` : null, f.name ? `name ${f.name}` : null,
+  ].filter(Boolean).join("; ");
+
+  const INTENTIONS = [
+    { id: "love", area: "love", label: "Love and relationships", offer: "candle", candle: "Love and Renewal" },
+    { id: "money", area: "money", label: "Work and money", offer: "reading" },
+    { id: "peace", area: "peace", label: "Healing and peace", offer: "pastor" },
+    { id: "purpose", area: "purpose", label: "Purpose and direction", offer: "reading" },
+    { id: "protection", area: "protection", label: "Protection", offer: "candle", candle: "Saint Michael" },
+    { id: "family", area: "family", label: "Family and home", offer: "pastor" },
+    { id: "exploring", area: "purpose", label: "I'm just exploring", offer: "reading" },
+  ];
+
+  function parsePortrait(text) {
+    const lines = String(text || "").split("\n").map((l) => l.replace(/^[#*\s"]+|[*"]+$/g, "").trim());
+    const nonEmpty = lines.filter(Boolean);
+    const title = nonEmpty[0] || "";
+    const traits = (nonEmpty[1] || "").split(/\s*[·•|,]\s*/).filter(Boolean).slice(0, 4);
+    const body = nonEmpty.slice(2).join("\n\n");
+    return { title, traits, body };
+  }
+
+  async function streamAMY(msg, onText) {
+    const sample = await window.claude.use("sample");
+    const out = await sample([{ role: "user", content: msg }], { modelTier: "default", onText: (u) => onText && onText(u && u.text) });
+    return String((out && out.text) || "").trim();
   }
 
   function fallback(f) {
@@ -87,19 +145,7 @@
     };
   }
 
-  async function writeReading(f, onText) {
-    const facts = `Western Sun ${f.sun}; Vedic Sun ${f.vedicSun}; ${f.moon ? `Moon ${f.moon} in the nakshatra ${f.nakshatra}; ` : "birth time unknown, so no Moon sign or rising; "}${f.rising ? `${f.rising} rising; ` : ""}born on a ${f.weekday} under a ${f.phase}${f.lifePath ? `; numerology Life Path ${f.lifePath}, ${f.lpTitle} (gift: ${f.lpGift}; shadow: ${f.lpShadow})` : ""}${f.name ? `; their name is ${f.name}` : ""}`;
-    const msg = `[The visitor has just seen their birth sky. Write their free first reading now, from these facts only, never inventing other placements: ${facts}. Three short paragraphs, about 120 words, speaking to them as you and attributing each tradition. Weave it into one picture of who they are: their gift, what they may struggle with, what their soul seems to be learning. Make it feel personal, tender and a little mysterious. End with one sentence saying there is much more in their chart that a full reading can open. No question at the end and no tools.]`;
-    try {
-      const sample = await window.claude.use("sample");
-      const out = await sample([{ role: "user", content: msg }], { modelTier: "default", onText: (u) => onText && onText(u && u.text) });
-      const text = out && String(out.text || "").trim();
-      if (text && text.length > 80) return { title: "What your sky says about you", reading: text };
-    } catch (e) { /* use the written fallback */ }
-    return fallback(f);
-  }
-
-  function bookingForm(offer, f) {
+  function bookingForm(offer, f, intent) {
     const box = document.createElement("form");
     box.className = "rd-book";
     box.innerHTML = `<input name="name" placeholder="Your name" autocomplete="name">
@@ -112,7 +158,7 @@
       e.preventDefault();
       const fd = Object.fromEntries(new FormData(box));
       if (!String(fd.contact || "").trim()) { box.querySelector(".err").textContent = "Add an email or phone number so we can confirm your time."; return; }
-      fd.type = offer.type; fd.offer = offer.title; fd.price = offer.price;
+      fd.type = offer.type; fd.offer = offer.title; fd.price = offer.price; if (intent) fd.intention = intent.text || intent.label;
       fd.sky = `${f.sun} Sun${f.moon ? ", " + f.moon + " Moon" : ""}${f.rising ? ", " + f.rising + " rising" : ""}${f.lifePath ? ", Life Path " + f.lifePath : ""}`;
       box.querySelector("button").disabled = true;
       let err = null;
@@ -130,19 +176,27 @@
     const f = facts(r);
     const tiles = [
       ["Sun", f.sun, `Vedic: ${f.vedicSun}`],
-      ["Vedic Moon", f.moon || "Add your birth time", f.nakshatra ? "Birth star: " + f.nakshatra : "for your Moon"],
+      ["Moon", f.westernMoon || f.moon || "Add your birth time", f.moon ? `Vedic: ${f.moon} · ${f.nakshatra}` : f.phaseName],
       ["Rising", f.rising || "Add your birth time", f.rising ? "how you meet the world" : "for your rising sign"],
       ["Life Path", f.lifePath || "", f.lpTitle],
     ];
+    const card = (o, extra) => `<div class="rd-card best" data-id="${o.id}"><span class="tag">${esc(extra && extra.tag || o.tag)}</span><h4>${esc(extra && extra.title || o.title)}</h4><div class="price">${esc(o.price)}</div><div class="len">${esc(o.length)}</div><p>${esc(extra && extra.text || o.text)}</p><button class="rd-btn" data-a="offer">${esc(o.button)}</button><div class="rd-slot"></div></div>`;
     root.innerHTML = `<div class="rd-wrap">
       <div class="rd-top"><div class="rd-mark">AMY<span>ASK ME YOUR…</span></div><button class="rd-link" data-a="talk">Talk with AMY instead</button></div>
-      <div class="rd-eyebrow">Your free reading</div>
-      <h1 class="rd-title">${f.name ? esc(f.name) + ", this" : "This"} is the soul your sky describes</h1>
-      <p class="rd-sub">Born on a ${esc(f.weekday)} under a ${esc(f.phase)}.</p>
+      <div class="rd-eyebrow">The universe, speaking you</div>
+      <h1 class="rd-title">Listening to your sky…</h1>
+      <div class="rd-traits"></div>
       <div class="rd-tiles">${tiles.map(([a, b, c]) => `<div class="rd-tile"><span>${esc(a)}</span><b>${esc(b)}</b><i>${esc(c)}</i></div>`).join("")}</div>
-      <div class="rd-amy"><img src="portrait.jpg" alt=""><div><h2 class="rd-h">Reading your chart…</h2><div class="rd-text"><p class="rd-wait">AMY is reading your sky and your numbers.</p></div></div></div>
-      <div class="rd-offers"><div class="rd-eyebrow">Go deeper</div><h3>Your chart has more to say</h3><p>Choose how you'd like to continue. Every session is confirmed personally before anything is charged.</p>
-        <div class="rd-cards">${OFFERS.map((o, i) => `<div class="rd-card${i === 0 ? " best" : ""}" data-id="${o.id}"><span class="tag">${esc(o.tag)}</span><h4>${esc(o.title)}</h4><div class="price">${esc(o.price)}</div><div class="len">${esc(o.length)}</div><p>${esc(o.text)}</p><button class="rd-btn" data-a="offer">${esc(o.button)}</button><div class="rd-slot"></div></div>`).join("")}</div>
+      <div class="rd-amy"><img src="portrait.jpg" alt=""><div><h2 class="rd-h">Your soul portrait</h2><div class="rd-text"><p class="rd-wait">AMY is reading how your Sun, Moon, rising and numbers speak to each other.</p></div></div></div>
+      <div class="rd-sec rd-intent"><div class="rd-eyebrow">Now you speak to the universe</div><h3>What are you calling into your life right now?</h3>
+        <p>Choose what matters most, and I'll show you what your sky says about it.</p>
+        <div class="rd-ints">${INTENTIONS.map((x) => `<button class="rd-int" data-i="${x.id}">${esc(x.label)}</button>`).join("")}</div>
+        <form class="rd-own"><input name="own" placeholder="Or say it in your own words" maxlength="160"><button class="rd-btn solid" type="submit">Ask the sky</button></form>
+        <div class="rd-answer" hidden><div class="rd-amy"><img src="portrait.jpg" alt=""><div><h2 class="rd-ah">The sky answers</h2><div class="rd-atext"><p class="rd-wait">Reading your chart for this…</p></div></div></div>
+          <div class="rd-eyebrow">A next step for this</div><div class="rd-next"></div>
+          <button class="rd-more" type="button">See every way to go deeper</button>
+          <div class="rd-all" hidden><div class="rd-cards">${OFFERS.map((o) => card(o).replace(' best"', '"')).join("")}</div></div>
+        </div>
       </div>
       <div class="rd-free"><button class="rd-btn" data-a="talk">Keep talking with AMY, free</button></div>
       <p class="rd-fine">Readings are offered for reflection and entertainment. AMY is an AI guide; our pastor and readers are real people.</p>
@@ -150,24 +204,58 @@
     root.hidden = false; root.scrollTop = 0;
     document.body.classList.add("in-reading");
 
-    let closed = false;
-    const close = (then) => { if (closed) return; closed = true; root.hidden = true; document.body.classList.remove("in-reading"); Promise.resolve(onTalk && onTalk()).then(() => then && then()); };
+    let closed = false, chosen = null, portrait = null;
+    const paras = (t) => String(t || "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean).map((p) => `<p>${esc(p)}</p>`).join("");
+    const close = () => {
+      if (closed) return; closed = true; root.hidden = true; document.body.classList.remove("in-reading");
+      try { if (typeof S !== "undefined") { if (portrait) S.freeReading = `${portrait.title}. ${portrait.body}`; if (chosen) S.freeReading = (S.freeReading || "") + ` They chose the intention: ${chosen.label}.`; if (typeof save === "function") save(); } } catch (e) { /* ignore */ }
+      return Promise.resolve(onTalk && onTalk());
+    };
     root.querySelectorAll("[data-a=talk]").forEach((b) => (b.onclick = () => close()));
-    root.querySelectorAll(".rd-card").forEach((card) => {
-      const offer = OFFERS.find((o) => o.id === card.dataset.id);
-      card.querySelector("[data-a=offer]").onclick = () => {
-        if (offer.id === "candle") { close(); setTimeout(() => { location.hash = "candles"; }, 700); return; }
-        const slot = card.querySelector(".rd-slot");
-        if (!slot.firstChild) { slot.appendChild(bookingForm(offer, f)); slot.querySelector("input[name=contact]").focus(); }
+    const wireOffers = (scope) => scope.querySelectorAll(".rd-card").forEach((c) => {
+      const offer = OFFERS.find((o) => o.id === c.dataset.id), btn = c.querySelector("[data-a=offer]");
+      if (!offer || !btn || btn.dataset.wired) return; btn.dataset.wired = "1";
+      btn.onclick = () => {
+        if (offer.id === "candle") { close().then(() => setTimeout(() => { location.hash = "candles"; }, 500)); return; }
+        const slot = c.querySelector(".rd-slot");
+        if (!slot.firstChild) { slot.appendChild(bookingForm(offer, f, chosen)); slot.querySelector("input[name=contact]").focus(); }
       };
     });
+    root.querySelector(".rd-more").onclick = () => { const a = root.querySelector(".rd-all"); a.hidden = !a.hidden; wireOffers(a); };
 
-    const paint = (txt) => { if (!closed && txt) root.querySelector(".rd-text").innerHTML = String(txt).split(/\n\s*\n/).map((p) => `<p>${esc(p.trim())}</p>`).join(""); };
-    const rd = await writeReading(f, (t) => { if (t) { root.querySelector(".rd-h").textContent = "What your sky says about you"; paint(t); } });
+    async function answer(intent) {
+      chosen = intent;
+      root.querySelectorAll(".rd-int").forEach((b) => b.classList.toggle("on", b.dataset.i === intent.id));
+      const box = root.querySelector(".rd-answer"); box.hidden = false;
+      const at = root.querySelector(".rd-atext"); at.innerHTML = `<p class="rd-wait">Reading your chart for ${esc(intent.label.toLowerCase())}…</p>`;
+      root.querySelector(".rd-ah").textContent = intent.id === "exploring" ? "The sky answers your curiosity" : `The sky answers: ${intent.label.toLowerCase()}`;
+      const o = OFFERS.find((x) => x.id === intent.offer) || OFFERS[0];
+      const tailored = o.id === "candle" ? { tag: "For this intention", title: `A ${intent.candle} candle`, text: `Prepared and dressed for ${intent.label.toLowerCase()}, with a seven-day ritual AMY walks you through.` }
+        : o.id === "pastor" ? { tag: "For this intention", text: `Prayer, counsel and a blessing for ${intent.label.toLowerCase()}. Spiritual care, not therapy, medical or legal advice.` }
+        : { tag: "For this intention", title: intent.id === "exploring" ? "Your full soul reading" : `A soul reading on ${intent.label.toLowerCase()}`, text: `One of our readers goes deep into what your sky, your numbers and your soul type say about ${intent.id === "exploring" ? "who you are" : intent.label.toLowerCase()}.` };
+      root.querySelector(".rd-next").innerHTML = card(o, tailored) + `<div class="rd-card"><span class="tag">Free</span><h4>Keep going with AMY</h4><p>Talk it through with AMY, try the practice tonight, and come back tomorrow for your daily check-in.</p><button class="rd-btn" data-a="talk">Talk with AMY</button></div>`;
+      root.querySelector(".rd-next [data-a=talk]").onclick = () => close();
+      wireOffers(root.querySelector(".rd-next"));
+      try { if (typeof S !== "undefined") { S.intention = { area: intent.area, mode: intent.id === "protection" ? "protect" : "call", text: intent.text || intent.label }; if (typeof setDiscovery === "function") setDiscovery("intention", (intent.text || intent.label).slice(0, 40)); } } catch (e) { /* ignore */ }
+      const msg = `[The visitor has just seen their soul portrait${portrait && portrait.title ? ` ("${portrait.title}")` : ""} and now names an intention: "${intent.text || intent.label}". From these chart facts only: ${factLine(f)}. Write the sky's answer in two short paragraphs, about 100 words: which parts of their chart speak to this intention (for love look to Venus, the Moon and the 7th house; for work and money the Sun's house, the 10th and 2nd houses, Jupiter, Saturn and the Life Path; for healing the Moon and the birth star; for purpose the Sun, the rising sign, the Life Path and the awakening age; for protection Mars and Saturn; for family the Moon and the 4th house) and what they suggest, attributing each tradition. Then give one simple free practice they can do tonight for this intention, in one or two sentences. No question at the end, no products, no tools.]`;
+      let text = "";
+      try { text = await streamAMY(msg, (t) => { if (t && chosen === intent) at.innerHTML = paras(t); }); } catch (e) { text = ""; }
+      if (chosen === intent) at.innerHTML = paras(text || `Your ${f.sun} Sun and ${f.lifePath ? "Life Path " + f.lifePath : "your chart"} both speak to this. Tonight, light a candle or simply sit quietly for one minute, say your intention out loud once, and notice what you feel.`);
+    }
+    root.querySelectorAll(".rd-int").forEach((b) => (b.onclick = () => answer(INTENTIONS.find((x) => x.id === b.dataset.i))));
+    root.querySelector(".rd-own").onsubmit = (e) => { e.preventDefault(); const v = String(new FormData(e.target).get("own") || "").trim(); if (v) answer({ id: "own", area: "purpose", label: v, text: v, offer: "reading" }); };
+
+    // The universe speaks: the soul portrait.
+    const msg = `[The visitor has just seen their birth sky. Write their soul portrait from these chart facts only, never inventing other placements: ${factLine(f)}. Format exactly: first line, an archetype name of two to four words beginning with "The" (for example The Radiant Builder). Second line, three short traits separated by " · ". Then a blank line and two short paragraphs, about 120 words in total, on how their Sun, Moon, rising sign and numbers play together: the gifts they likely carry, an inner tension they may recognise, and what their soul seems to be learning. This is reflective, not a diagnosis. Attribute each tradition, speak to them as you, make it feel personal and tender. No question at the end and no tools.]`;
+    const paint = (t) => { if (closed) return; const p = parsePortrait(t); if (p.title) root.querySelector(".rd-title").textContent = p.title; if (p.traits.length) root.querySelector(".rd-traits").innerHTML = p.traits.map((x) => `<span class="rd-trait">${esc(x)}</span>`).join(""); if (p.body) root.querySelector(".rd-text").innerHTML = paras(p.body); };
+    let text = "";
+    try { text = await streamAMY(msg, paint); } catch (e) { text = ""; }
+    portrait = parsePortrait(text);
+    if (!portrait.title || !portrait.body) { const fb = fallback(f); portrait = { title: fb.title, traits: [], body: fb.reading }; }
     if (closed) return;
-    root.querySelector(".rd-h").textContent = rd.title;
-    root.querySelector(".rd-text").innerHTML = rd.reading.split(/\n\s*\n/).map((p) => `<p>${esc(p.trim())}</p>`).join("");
-    try { if (typeof S !== "undefined") { S.freeReading = rd.reading; if (typeof save === "function") save(); } } catch (e) { /* ignore */ }
+    root.querySelector(".rd-title").textContent = portrait.title;
+    root.querySelector(".rd-text").innerHTML = paras(portrait.body);
+    try { if (typeof S !== "undefined") { S.freeReading = `${portrait.title}. ${portrait.body}`; if (typeof save === "function") save(); } } catch (e) { /* ignore */ }
   }
 
   window.AMYReading = { show, OFFERS };
