@@ -49,7 +49,7 @@ export default async function handler(req) {
     if (t.length > 20) out.push({ day, date: dm[1], text: t });
   }
   // Prefer events closest to the birthday, gentler ones first, one per date, then show them in date order.
-  const grim = /\b(kill|killed|killing|execut|massacre|bomb|murder|shot|dies|died|death|dead|crash|terror|hostage|attack|genocide|rape|suicide)/i;
+  const grim = /\b(kill|killed|killing|execut|massacre|bomb|murder|shot|die|dies|died|death|deaths|dead|crash|terror|hostage|attack|genocide|rape|suicide|tsunami|earthquake|flood|famine|disaster)/i;
   const seen = new Set();
   const pick = out.map((e) => ({ ...e, dist: Math.abs(e.day - d) + (grim.test(e.text) ? 40 : 0) })).sort((a, b) => a.dist - b.dist)
     .filter((e) => (seen.has(e.date) ? false : (seen.add(e.date), true))).slice(0, 4).sort((a, b) => a.day - b.day)
