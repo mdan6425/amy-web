@@ -532,8 +532,10 @@ const AMYPortal = (() => {
     await sky.animateTo({ lst: sb.gast + defaultLng, bodies: 1, lines: 0.25 }, 3600 + Math.min(2400, years * 40), Math.min(6, 2 + Math.floor(years / 12)));
     level(2);
     const ph = r.moonPhase;
+    P.worldP = window.AMYJourney ? window.AMYJourney.worldCard(date).catch(() => null) : null;
     await reveal([
       { card: { eyebrow: "Tradition of planetary days · The day you arrived", big: `${r.weekday}, ${fmtDate(date)}`, sub: `${r.weekdayRuler}'s day` }, text: WEEKDAY_TEXT[r.weekdayRuler], fact: ["Born on", `${r.weekday}, ${r.weekdayRuler}'s day`] },
+      window.AMYJourney ? { focus: sky.bodyAlt("Moon") > 0 ? "Moon" : null, ...window.AMYJourney.moonCard(r) } :
       { focus: sky.bodyAlt("Moon") > 0 ? "Moon" : null, card: { eyebrow: "Astronomy · The Moon that night", big: ph.name, sub: `${Math.max(0, Math.round(ph.ageDays))} days into the cycle · ${Math.round(ph.illumination * 100)}% lit` }, text: "In astrology the Moon's phase at birth is read as a temperament. " + PHASE_TEXT[ph.name], fact: ["Moon at birth", ph.name] },
       { card: { eyebrow: "Western astrology (tropical) · The Sun", big: r.sun.cusp ? `Between ${r.sun.tropical} and the next sign` : r.sun.tropical, sub: "in the Western zodiac" },
         text: (r.sun.cusp ? "The Sun was changing signs the day you were born, so the hour will settle it. " : "") + `In the Western zodiac the Sun stood in ${r.sun.tropical}, which astrologers associate with ${SIGN[r.sun.tropical]}. The older Vedic zodiac counts it a little differently; I'll show you that too.`,
@@ -595,6 +597,7 @@ const AMYPortal = (() => {
       { card: { eyebrow: "Over " + place.name, big: "The night you were born", sub: rise && set ? `Sunrise ${rise} · sunset ${set}` : place.country },
         text: `This is the sky over ${place.name} on the night of ${fmtDate(P.date)}, at ${fmtTime(night.toISOString(), place.tz)}. North is at the top, and east, where everything rises, is on the left.` + (up.length ? ` ${andList(up).replace(/^the/, "The")} ${up.length > 1 ? "were" : "was"} up that night.` : ""),
         fact: ["Born in", place.name] },
+      window.AMYJourney ? window.AMYJourney.moonOverCity(P.date, place) : null,
     ]);
     if (S.p.birthTime) return onTime(S.p.birthTime);
     askTime();
@@ -629,7 +632,7 @@ const AMYPortal = (() => {
       let t = sunUp ? "You were born in daylight. The stars were still there behind the Sun, exactly where you see them now." : "You were born in the dark, under these stars.";
       if (r.planetaryHour) t += ` In the old tradition of planetary hours, it was the hour of ${r.planetaryHour.ruler}, associated with ${PLANET_WORD[r.planetaryHour.ruler]}.`;
       if (r.vedicWeekday) t += ` In the Vedic reckoning the day begins at sunrise, so by that count you were born on ${r.vedicWeekday}, before the Sun rose on ${r.weekday}.`;
-      items.push({ card: { eyebrow: "Astronomy · The moment", big: `${fmtTime(r.instant, place.tz)}, ${r.weekday}`, sub: r.planetaryHour ? `Hour of ${r.planetaryHour.ruler}` : "" }, text: t, fact: r.planetaryHour ? ["Hour of", r.planetaryHour.ruler] : null });
+      if (window.AMYJourney) items.push(window.AMYJourney.momentCard(r, place)); else items.push({ card: { eyebrow: "Astronomy · The moment", big: `${fmtTime(r.instant, place.tz)}, ${r.weekday}`, sub: r.planetaryHour ? `Hour of ${r.planetaryHour.ruler}` : "" }, text: t, fact: r.planetaryHour ? ["Hour of", r.planetaryHour.ruler] : null });
       if (r.rising) items.push({ focus: "east", card: { eyebrow: "Western astrology · Rising on the eastern horizon", big: `${r.rising.sign} rising`, sub: `${Math.floor(r.rising.degree)}° ${r.rising.sign}` }, text: `At that minute ${r.rising.sign} was rising in the east. In Western astrology the rising sign describes how the world first meets you; ${r.rising.sign} is associated with ${SIGN[r.rising.sign]}.`, fact: ["Rising", r.rising.sign] });
       else if (r.dstIssue) items.push({ card: { eyebrow: "Rising sign", big: "Hidden by the clock", sub: "Daylight saving" }, text: "That time fell in a daylight saving change, so the clock can't tell me the exact minute. I'll leave your rising sign open rather than guess." });
     } else {
@@ -642,11 +645,13 @@ const AMYPortal = (() => {
       <div><span>Western Sun</span><b>${esc(r.sun.tropical)}</b></div>
       <div><span>Vedic Sun</span><b>${esc(r.sun.sidereal)}</b><i>${esc(r.sun.siderealWestern)}</i></div>
       <div><span>Moon</span><b>${esc(r.timeKnown || r.moon.rashiRange[0] === r.moon.rashiRange[1] ? r.moon.rashi : r.moon.rashiRange.join(" or "))}</b><i>${esc(nakTxt)}</i></div></div>`;
-    items.push({ focus: "Moon", card: { html: triad }, text: await triadText(r, moonTxt, nakTxt), fact: ["Vedic Sun", r.sun.sidereal], next: "Continue" });
+    if (window.AMYJourney) items.push({ focus: "Moon", ...window.AMYJourney.lightsCard(r), fact: ["Vedic Sun", r.sun.sidereal] });
+    else items.push({ focus: "Moon", card: { html: triad }, text: await triadText(r, moonTxt, nakTxt), fact: ["Vedic Sun", r.sun.sidereal], next: "Continue" });
     if (r.timeKnown || r.moon.nakshatraRange[0] === r.moon.nakshatraRange[1]) {
       const nk = r.moon.nakshatra;
       items.push({ focus: "Moon", card: { eyebrow: "Vedic astrology · Your birth star", big: nk, sub: r.timeKnown ? `Pada ${r.moon.pada}` : "Nakshatra of the Moon" }, text: `In Vedic astrology the Moon moves through twenty seven birth stars, the nakshatras. Yours is ${nk}: tradition describes it as ${NAK_TEXT[nk]}.` + (r.moon.nearBoundary ? " Your Moon sat right at a border, so a few minutes either way could tip it. Trust what resonates." : ""), fact: ["Birth star", nk] });
     }
+    if (window.AMYJourney) { items.push(window.AMYJourney.numbersCard(r)); items.push(await (P.worldP || Promise.resolve(null))); }
     await reveal(items);
     persist(r);
     if (window.AMYReading) window.AMYReading.show(r, () => returnToChat(r)); else returnToChat(r);
@@ -741,7 +746,7 @@ const AMYPortal = (() => {
     bits.push(`born on a ${r.weekday}`, /moon$/i.test(r.moonPhase.name) ? r.moonPhase.name : `${r.moonPhase.name} Moon`);
     if (!S.lastNotice || Date.now() - S.lastNotice > 3 * 3600 * 1000) { S.messages.push({ id: uid(), role: "notice", kind: "ai" }); S.lastNotice = Date.now(); }
     S.messages.push({ id: uid(), role: "amy", parts: [], text: `**Your birth sky:** ${bits.join(" · ")}.` });
-    S.afterDiscovery = `the birth sky (${bits.join("; ")}).` + (S.freeReading ? ` They have just read their free reading, which said: "${S.freeReading.slice(0, 700)}". Ask what part of it felt most true, and when it fits, invite them to the full soul reading.` : "");
+    S.afterDiscovery = `the birth sky (${bits.join("; ")}).` + (S.freeReading ? ` They have just read their soul portrait, which said: "${S.freeReading.slice(0, 800)}". Ask what part of it felt most true. If they named an intention, help them with it next, and when it fits, invite them to the offering that suits it.` : "");
     save();
     el("portal").hidden = true; el("app").hidden = false; document.body.classList.remove("in-portal");
     showConversation(); renderThread();
