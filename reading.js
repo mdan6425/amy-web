@@ -205,7 +205,7 @@
     document.body.classList.add("in-reading");
 
     let closed = false, chosen = null, portrait = null;
-    const paras = (t) => String(t || "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean).map((p) => `<p>${esc(p)}</p>`).join("");
+    const paras = (t) => String(t || "").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean).map((p) => `<p>${esc(p).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")}</p>`).join("");
     const close = () => {
       if (closed) return; closed = true; root.hidden = true; document.body.classList.remove("in-reading");
       try { if (typeof S !== "undefined") { if (portrait) S.freeReading = `${portrait.title}. ${portrait.body}`; if (chosen) S.freeReading = (S.freeReading || "") + ` They chose the intention: ${chosen.label}.`; if (typeof save === "function") save(); } } catch (e) { /* ignore */ }
